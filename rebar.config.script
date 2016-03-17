@@ -1,0 +1,52 @@
+OtpErlangJInterfaceDir  = code:lib_dir("jinterface"),
+{match, [Vsn]} = re:run(OtpErlangJInterfaceDir, ".*/jinterface-([0-9.]+)$", [{capture,[1], list}]).
+MavenLibDir = filename:join(["libs", "org", "erlang","otp", "jinterface-" ++ Vsn]),
+OtpErlangJInterfaceJar = filename:join([OtpErlangJInterfaceDir, "priv", "OtpErlang.jar"]),
+MavenLibJar = filename:join([MavenLibDir, "jinterface-" ++  Vsn ++ ".jar"]),
+Template = [
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
+            "<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n",
+            "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n",
+            "         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n",
+            "  <modelVersion>4.0.0</modelVersion>\n"
+            "  <groupId>org.erlang.otp</groupId>\n"
+            "  <artifactId>jinterface</artifactId>\n"
+            "  <version>", Vsn, "</version>\n"
+            "</project>\n"],
+TemplateFileName = filename:join([MavenLibDir, "jinterface-" ++  Vsn ++ ".pom" ]),
+
+
+io:format("~s~n",
+          [erlang:iolist_to_binary(["FileNames: \n"
+                                   , "\tMavenLibDir = ", io_lib_pretty:print(MavenLibDir), "\n"
+                                   , "\tTemplateFileName = ", io_lib_pretty:print(TemplateFileName), "\n"
+                                   ])]),
+ok = filelib:ensure_dir(MavenLibJar),
+{ok, _} = file:copy(OtpErlangJInterfaceJar,
+                    MavenLibJar),
+ok = file:write_file(TemplateFileName, Template),
+
+%% JInterfaceVsn = cdo
+
+%% case filelib:is_dir(JavaLibDir) of
+%%      true -> ok;
+%%      false ->
+%%         CreateDirectory(JInterfaceVsn)
+%% end,
+
+
+%% case filelib:is_file(POMFile)
+
+
+[{erl_opts, [debug_info, report]},
+ {cover_enabled, true},
+ {cover_print_enabled, true},
+ {clean_files, ["ebin/*,beam"]},
+ {deps,[]},
+ {sub_dirs, ["src"]}].
+
+
+%% Local Variables:
+%% mode:erlang
+%% coding: utf-8-unix
+%% End:
