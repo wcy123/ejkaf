@@ -1,19 +1,25 @@
 package JNode;
 
-import com.ericsson.otp.erlang.*;
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBinary;
+import com.ericsson.otp.erlang.OtpErlangDecodeException;
+import com.ericsson.otp.erlang.OtpErlangExit;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangPid;
+import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.ericsson.otp.erlang.OtpMbox;
+import com.ericsson.otp.erlang.OtpNode;
+
 import java.io.IOException;
 
 
-/**
- * Created by wangchunye on 3/13/16.
- */
 public class Node {
     Producer producer;
     public static void main (String[]args) {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    System.out.println("start to read from standard input");
+                    //System.out.println("start to read from standard input");
                     int buf = System.in.read();
                     System.out.println("receive:" + buf);
                 } catch (IOException e) {
@@ -53,7 +59,6 @@ public class Node {
         while (true) {
             try {
                 OtpErlangObject o = msgBox.receive();
-                System.out.println("Hello " + o + "   " + o.equals(exit));
                 if (o instanceof OtpErlangTuple) {
                     OtpErlangTuple msg = (OtpErlangTuple)o;
 
