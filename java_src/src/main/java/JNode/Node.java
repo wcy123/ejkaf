@@ -36,7 +36,13 @@ public class Node {
             System.err.println("env FIRST_NODE is empty");
             System.exit(1);
         }
-        OtpNode self = new OtpNode("java");
+        OtpNode self;
+        String Cookie = System.getenv("ERLANG_COOKIE");
+        if(Cookie == null) {
+            self = new OtpNode("java");
+        } else {
+            self = new OtpNode("java", Cookie);
+        }
         OtpMbox msgBox = self.createMbox("kafka");
         if (!self.ping(FirstNode, 2000)) {
             System.err.println("unable to connect the first node " + FirstNode);

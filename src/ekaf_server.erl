@@ -193,7 +193,7 @@ handle_info(Info, StateName, State) ->
 %%--------------------------------------------------------------------
 terminate(Reason, StateName, State) ->
     debug("SERVER EXIST: Reason = ~p, StateName = ~p~n",[Reason, StateName]),
-    erlang:port_close(State#state.port),
+    catch erlang:port_close(State#state.port),
     ok.
 
 %%--------------------------------------------------------------------
@@ -230,7 +230,8 @@ start_java_node() ->
                       exit_status,
                       {env, [
                              {"FIRST_NODE", atom_to_list(node())},
-                             {"BROKER_LIST", build_broker_list()}
+                             {"BROKER_LIST", build_broker_list()},
+                             {"ERLANG_COOKIE", atom_to_list(erlang:get_cookie())}
                             ]}
                      ]).
 
