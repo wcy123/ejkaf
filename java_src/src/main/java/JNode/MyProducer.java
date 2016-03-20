@@ -1,9 +1,6 @@
 package JNode;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.log4j.Logger;
@@ -33,11 +30,11 @@ class MyProducer
         this.producer = new KafkaProducer<byte[],byte[]>(props,s,s);
     }
 
-    public void send(String topic, byte[] messageStr) {
+    public void send(String topic, byte[] messageStr, Callback callback) {
         ProducerRecord<byte[],byte[]> msg;
         msg = new ProducerRecord<byte[],byte[]>(topic, messageStr);
         try {
-            this.producer.send(msg);
+            this.producer.send(msg,callback);
         }catch( Exception e) {
             logger.error("cannot send msg " + msg, e);
             System.exit(1);

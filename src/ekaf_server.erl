@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, send/2]).
+-export([start_link/0, prepare/0, send/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -19,7 +19,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {port, pending_request}).
+-record(state, {port, pending_request = queue:new(), request_for_prepare}).
 
 %%%===================================================================
 %%% API
@@ -38,6 +38,9 @@ start_link() ->
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
+
+prepare() ->
+    gen_server:call(?SERVER, prepare).
 
 send(Topic, Data) ->
     gen_server:call(?SERVER, {request, {kafka_send, Topic, Data}}).
@@ -74,20 +77,10 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 
+handle_call(prepare, From, State) ->
+    handle_prepare(From,State);
 handle_call({request, Request}, From, State) ->
-    case is_node_alive() of
-        true ->
-            do_request(From, Request),
-            {noreply, State};
-        false ->
-            case State#state.pending_request of
-                undefined ->
-                    Port = maybe_start_node(State#state.port),
-                    {noreply, State#state{port = Port, pending_request = {From, Request}}};
-                _OtherWise ->                   % only one pending request is allowed.
-                    {reply, {error, node_down}, State}
-            end
-    end;
+    handle_request(From, Request, State);
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -133,13 +126,9 @@ handle_info({nodeup, Node, _Info}, State) ->
     debug("node up ~p~n", [Node]),
     case Node == get_java_node() of
         true ->
-            case State#state.pending_request of
-                {From, Request} ->
-                    do_request(From, Request);
-                _ ->
-                    ok
-            end,
-            {noreply, State#state{pending_request = undefined}};
+            State0 = maybe_reply_prepare_request(State),
+            State1 = maybe_handle_pending_request(State0),
+            {noreply, State1};
         false ->
             {noreply, State}
     end;
@@ -180,13 +169,79 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-maybe_start_node(Port) ->
-    case erlang:port_info(Port) of
-        undefined ->
-            start_java_node();
-        _ ->
-            Port
+handle_prepare(From,State) ->
+    case is_node_alive() of
+        true ->
+            {reply, ok, State};
+        false ->
+            do_prepare(From, State)
     end.
+
+do_prepare(From, State) ->
+    TargetNode = get_java_node(),
+    %% trigger the node up event
+    net_kernel:hidden_connect_node(TargetNode),
+    net_adm:ping(TargetNode),
+    case is_node_alive() of
+        true ->
+            {reply, ok, State#state{request_for_prepare = undefined}};
+        false ->
+            State0 = maybe_start_node(State),
+            {noreply,State0#state{request_for_prepare = From}}
+    end.
+
+handle_request(From, Request, State) ->
+    case is_node_alive() of
+        true ->
+            do_request(From, Request),
+            {noreply, State};
+        false ->
+            case is_overflow(State) of
+                true ->
+                    { reply, {error, overflow}, State};
+                false ->
+                    State0 = maybe_start_node(State),
+                    State1 = push_request(From, Request, State0),
+                    { noreply, State1}
+            end
+    end.
+
+is_overflow(State) ->
+    queue:len(State#state.pending_request) > 100.
+
+
+maybe_reply_prepare_request(State) ->
+    case State#state.request_for_prepare of
+        undefined ->
+            ok;
+        From ->
+            gen_server:reply(From, ok)
+    end,
+    State#state{ request_for_prepare = undefined }.
+
+maybe_handle_pending_request(State) ->
+    lists:foreach(
+      fun({From, Request}) ->
+              do_request(From, Request)
+      end,
+      queue:to_list(State#state.pending_request)),
+    State#state{ pending_request = queue:new() }.
+
+push_request(From, Request, State) ->
+    Q = State#state.pending_request,
+    State#state{pending_request = queue:in({From, Request}, Q)}.
+
+
+maybe_start_node(State) ->
+    Port = State#state.port,
+    NewPort =
+        case erlang:port_info(Port) of
+            undefined ->
+                start_java_node();
+            _ ->
+                Port
+        end,
+    State#state{ port = NewPort}.
 
 start_java_node() ->
     Java = os:find_executable("java"),
@@ -210,7 +265,7 @@ is_node_alive() ->
     lists:member(get_java_node(), nodes(hidden)).
 
 build_broker_list() ->
-    {Host, Port} = application:get_env(ekaf, ekaf_bootstrap_broker, {"localhost", "9092"}),
+    {Host, Port} = application:get_env(ekaf, ekaf_bootstrap_broker, {"localhost", 9092}),
     Host ++ ":" ++ integer_to_list(Port).
 
 jnode_jar() ->

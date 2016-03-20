@@ -9,6 +9,8 @@ import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.io.IOException;
 
@@ -66,13 +68,9 @@ public class Node {
                     OtpErlangObject ref = msg.elementAt(1);
                     OtpErlangBinary topic = (OtpErlangBinary)msg.elementAt(2);
                     OtpErlangBinary data = (OtpErlangBinary)msg.elementAt(3);
-                    this.myProducer.send(new String(topic.binaryValue()), data.binaryValue());
-
-                    OtpErlangObject[] result = new OtpErlangObject[3];
-                    result[0] = new OtpErlangAtom("java");;
-                    result[1] = ref;
-                    result[2] = new OtpErlangAtom("ok");
-                    msgBox.send(from, new OtpErlangTuple(result));
+                    this.myProducer.send(new String(topic.binaryValue()),
+                            data.binaryValue(),
+                            new KafkaCallback(msgBox,from,ref));
                 }else if( o.equals(exit) ) {
                     System.exit(0);
                 }
@@ -82,5 +80,32 @@ public class Node {
                 e.printStackTrace();
             }
         }
+    }
+}
+class KafkaCallback implements Callback {
+
+    private final OtpErlangObject ref;
+    private final OtpMbox msgBox;
+    private final OtpErlangPid from;
+    public KafkaCallback(OtpMbox msgBox, OtpErlangPid from, OtpErlangObject ref) {
+        this.msgBox = msgBox;
+        this.from = from;
+        this.ref = ref;
+    }
+     public void onCompletion(RecordMetadata metadata, Exception exception) {
+         OtpErlangObject[] result = new OtpErlangObject[3];
+         result[0] = new OtpErlangAtom("java");
+         result[1] = ref;
+         if (metadata != null) {
+             result[2] = new OtpErlangAtom("ok");
+         } else {
+             // return {error, Reason}.
+             OtpErlangObject[] error = new OtpErlangObject[2];
+             error[0] = new OtpErlangAtom("error");
+             String reason = exception.toString();
+             error[1] = new OtpErlangBinary(reason);
+             result[2] = new OtpErlangTuple(error);
+        }
+        msgBox.send(from, new OtpErlangTuple(result));
     }
 }
