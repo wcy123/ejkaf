@@ -77,8 +77,8 @@ init([]) ->
 handle_call({request, Request}, From, State) ->
     case is_node_alive() of
         true ->
-            Reply = do_request(Request),
-            {reply, Reply, State};
+            do_request(From, Request),
+            {noreply, State};
         false ->
             case State#state.pending_request of
                 undefined ->
@@ -135,8 +135,7 @@ handle_info({nodeup, Node, _Info}, State) ->
         true ->
             case State#state.pending_request of
                 {From, Request} ->
-                    Reply = do_request(Request),
-                    gen_fsm:reply(From, Reply);
+                    do_request(From, Request);
                 _ ->
                     ok
             end,
@@ -144,6 +143,9 @@ handle_info({nodeup, Node, _Info}, State) ->
         false ->
             {noreply, State}
     end;
+handle_info({java, From, Reply}, State) ->
+    gen_server:reply(From, Reply),
+    {noreply, State};
 handle_info(Info, State) ->
     debug("UNKNOWN INFO: Info = ~p~n", [Info]),
     {noreply, State}.
@@ -216,23 +218,16 @@ jnode_jar() ->
                    "java_src","target", "JNode-1.0-jar-with-dependencies.jar"]).
 
 
-do_request({kafka_send, Topic, Data}) ->
-    try_produce_sync(Topic, Data);
-do_request(_) ->
-    {error, unknown_request}.
+do_request(From, {kafka_send, Topic, Data}) ->
+    try_produce_sync(From, Topic, Data);
+do_request(From, _) ->
+    gen_server:reply(From, {error, unknown_request}).
 
-try_produce_sync(Topic, Data) ->
+try_produce_sync(From, Topic, Data) ->
     Topic1 = erlang:iolist_to_binary(Topic),
     Data1 =  erlang:iolist_to_binary(Data),
-    Ref = make_ref(),
-    Req = {self(), Ref, Topic1, Data1},
-    {kafka, get_java_node() } ! Req,
-    receive
-        {Ref, Ret} ->
-            Ret
-    after 5000 ->
-            {error, timeout}
-    end.
+    Req = {self(), From, Topic1, Data1},
+    {kafka, get_java_node() } ! Req.
 
 debug(Fmt, Args) ->
      io:format(Fmt, Args).

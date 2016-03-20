@@ -27,7 +27,7 @@ class MyProducer
                 "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 "org.apache.kafka.common.serialization.StringSerializer");
-        props.put(ProducerConfig.BATCH_SIZE_CONFIG, "200");
+        // props.put(ProducerConfig.BATCH_SIZE_CONFIG, "200");
         this.serializer = new ByteArraySerializer();
         Serializer<byte[]> s = this.serializer;
         this.producer = new KafkaProducer<byte[],byte[]>(props,s,s);

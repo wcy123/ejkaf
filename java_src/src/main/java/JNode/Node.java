@@ -68,9 +68,10 @@ public class Node {
                     OtpErlangBinary data = (OtpErlangBinary)msg.elementAt(3);
                     this.myProducer.send(new String(topic.binaryValue()), data.binaryValue());
 
-                    OtpErlangObject[] result = new OtpErlangObject[2];
-                    result[0] = ref;
-                    result[1] = new OtpErlangAtom("ok");
+                    OtpErlangObject[] result = new OtpErlangObject[3];
+                    result[0] = new OtpErlangAtom("java");;
+                    result[1] = ref;
+                    result[2] = new OtpErlangAtom("ok");
                     msgBox.send(from, new OtpErlangTuple(result));
                 }else if( o.equals(exit) ) {
                     System.exit(0);
