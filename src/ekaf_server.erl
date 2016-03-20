@@ -120,7 +120,7 @@ handle_info({_Port, {data, Data}}, State) ->
     {noreply, State};
 handle_info({_Port, {exit_status,Status}}, State) ->
     debug("JAVANODE: exit = ~p~n", [Status]),
-    {noreply, State};
+    {stop, nodedown, State};
 handle_info({nodedown, Node, _Info}, State) ->
     debug("node down ~p~n", [Node]),
     case Node == get_java_node() of

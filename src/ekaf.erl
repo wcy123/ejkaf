@@ -5,5 +5,4 @@ prepare(_Topic) ->
     ok.
 
 produce_sync(Topic, Data) ->
-    ekaf_server:send(Topic, Data).
-
+    ekaf_server:send(Topic,Data).

@@ -22,13 +22,23 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka-clients</artifactId>
             <version>0.8.2.1</version>
         </dependency>
         <dependency>
             <groupId>org.erlang.otp</groupId>
             <artifactId>jinterface</artifactId>
             <version>1.6.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-perf_2.8.2</artifactId>
+            <version>0.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-examples</artifactId>
+            <version>0.8.2.1</version>
         </dependency>
     </dependencies>
     <build>

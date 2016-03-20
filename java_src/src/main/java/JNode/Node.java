@@ -14,7 +14,7 @@ import java.io.IOException;
 
 
 public class Node {
-    Producer producer;
+    MyProducer myProducer;
     public static void main (String[]args) {
         new Thread(new Runnable() {
             public void run() {
@@ -34,7 +34,7 @@ public class Node {
         }
     }
     Node() {
-        producer = new Producer();
+        myProducer = new MyProducer();
     }
     void loop() throws IOException {
         String FirstNode = System.getenv("FIRST_NODE");
@@ -66,7 +66,7 @@ public class Node {
                     OtpErlangObject ref = msg.elementAt(1);
                     OtpErlangBinary topic = (OtpErlangBinary)msg.elementAt(2);
                     OtpErlangBinary data = (OtpErlangBinary)msg.elementAt(3);
-                    this.producer.send(new String(topic.binaryValue()), new String(data.binaryValue()));
+                    this.myProducer.send(new String(topic.binaryValue()), data.binaryValue());
 
                     OtpErlangObject[] result = new OtpErlangObject[2];
                     result[0] = ref;
