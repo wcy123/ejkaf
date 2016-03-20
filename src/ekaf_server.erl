@@ -278,10 +278,10 @@ do_request(From, {kafka_send, Topic, Data}) ->
 do_request(From, _) ->
     gen_server:reply(From, {error, unknown_request}).
 
-try_produce_sync(From, Topic, Data) ->
+try_produce_sync({From, Tag}, Topic, Data) ->
     Topic1 = erlang:iolist_to_binary(Topic),
     Data1 =  erlang:iolist_to_binary(Data),
-    Req = {self(), From, Topic1, Data1},
+    Req = {From, Tag,Topic1, Data1},
     {kafka, get_java_node() } ! Req.
 
 debug(Fmt, Args) ->

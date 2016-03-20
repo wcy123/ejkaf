@@ -84,28 +84,32 @@ public class Node {
 }
 class KafkaCallback implements Callback {
 
-    private final OtpErlangObject ref;
+    private final OtpErlangObject tag;
     private final OtpMbox msgBox;
     private final OtpErlangPid from;
-    public KafkaCallback(OtpMbox msgBox, OtpErlangPid from, OtpErlangObject ref) {
+    public KafkaCallback(OtpMbox msgBox, OtpErlangPid from, OtpErlangObject tag) {
         this.msgBox = msgBox;
         this.from = from;
-        this.ref = ref;
+        this.tag = tag;
     }
      public void onCompletion(RecordMetadata metadata, Exception exception) {
-         OtpErlangObject[] result = new OtpErlangObject[3];
-         result[0] = new OtpErlangAtom("java");
-         result[1] = ref;
+         OtpErlangObject reply;
          if (metadata != null) {
-             result[2] = new OtpErlangAtom("ok");
+             reply = new OtpErlangAtom("ok");
          } else {
              // return {error, Reason}.
              OtpErlangObject[] error = new OtpErlangObject[2];
              error[0] = new OtpErlangAtom("error");
              String reason = exception.toString();
              error[1] = new OtpErlangBinary(reason);
-             result[2] = new OtpErlangTuple(error);
+             reply = new OtpErlangTuple(error);
         }
-        msgBox.send(from, new OtpErlangTuple(result));
+        msgBox.send(from, gen_reply(tag,reply));
+    }
+    private OtpErlangObject gen_reply(OtpErlangObject tag, OtpErlangObject reply){
+        OtpErlangObject[] result = new OtpErlangObject[2];
+        result[0] = tag;
+        result[1] = reply;
+        return new OtpErlangTuple(result);
     }
 }
