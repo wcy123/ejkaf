@@ -39,7 +39,13 @@ ok = file:write_file(TemplateFileName, Template),
 %% case filelib:is_file(POMFile)
 
 
-[{erl_opts, [debug_info, report]},
+[{
+   pre_hooks,
+   [
+    {compile, "./java_build.sh"}
+   ]
+ },
+ {erl_opts, [debug_info, report]},
  {cover_enabled, true},
  {cover_print_enabled, true},
  {clean_files, ["ebin/*,beam"]},
