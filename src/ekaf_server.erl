@@ -207,11 +207,9 @@ get_java_node() ->
 is_node_alive() ->
     lists:member(get_java_node(), nodes(hidden)).
 
-
-
 build_broker_list() ->
     {Host, Port} = application:get_env(ekaf, ekaf_bootstrap_broker, {"localhost", "9092"}),
-    Host ++ ":" ++ Port.
+    Host ++ ":" ++ integer_to_list(Port).
 
 jnode_jar() ->
     filename:join([code:lib_dir(ekaf),
