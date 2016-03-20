@@ -248,7 +248,7 @@ start_java_node() ->
     true = is_list(Java),
     open_port({spawn_executable, Java},
                      [
-                      {args, ["-jar", jnode_jar()]},
+                      {args, ["-jar", jnode_jar(), "-classpath", "."]},
                       binary,
                       exit_status,
                       {env, [
