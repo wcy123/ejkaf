@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, send/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -207,11 +207,7 @@ get_java_node() ->
 is_node_alive() ->
     lists:member(get_java_node(), nodes(hidden)).
 
-build_cmd() ->
-    "java -jar " ++ jnode_jar() ++ " " ++ build_args().
 
-build_args() ->
-    build_broker_list().
 
 build_broker_list() ->
     {Host, Port} = application:get_env(ekaf, ekaf_bootstrap_broker, {"localhost", "9092"}),
