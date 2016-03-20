@@ -1,6 +1,7 @@
 OtpErlangJInterfaceDir  = code:lib_dir("jinterface"),
 {match, [Vsn]} = re:run(OtpErlangJInterfaceDir, ".*/jinterface-([0-9.]+)$", [{capture,[1], list}]).
-MavenLibDir = filename:join(["libs", "org", "erlang","otp", "jinterface-" ++ Vsn]),
+MavenLibDir = filename:join(["java_src", "libs", "org", "erlang","otp", "jinterface",Vsn]),
+%% java_src/libs/org/erlang/otp/jinterface/1.6.1/jinterface-1.6.1.pom
 OtpErlangJInterfaceJar = filename:join([OtpErlangJInterfaceDir, "priv", "OtpErlang.jar"]),
 MavenLibJar = filename:join([MavenLibDir, "jinterface-" ++  Vsn ++ ".jar"]),
 Template = [
