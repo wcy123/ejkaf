@@ -44,6 +44,13 @@ prepare() ->
 
 send(Topic, Data) ->
     gen_server:call(?SERVER, {request, {kafka_send, Topic, Data}}).
+recv() ->
+    Ref = erlang:make_ref(),
+    {kafka_consumer, get_java_node() } ! {self(), Ref},
+    receive
+        {Ref, Binary} ->
+            Binary
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -233,15 +240,17 @@ push_request(From, Request, State) ->
 
 
 maybe_start_node(State) ->
-    Port = State#state.port,
-    NewPort =
-        case erlang:port_info(Port) of
-            undefined ->
-                start_java_node();
-            _ ->
-                Port
-        end,
-    State#state{ port = NewPort}.
+    %% Port = State#state.port,
+    %% NewPort =
+    %%     case erlang:port_info(Port) of
+    %%         undefined ->
+    %%             %% start_java_node();
+    %%             ok;
+    %%         _ ->
+    %%             Port
+    %%     end,
+    net_adm:ping(get_java_node()),
+    State#state{ port = ok}.
 
 start_java_node() ->
     Java = os:find_executable("java"),
@@ -281,7 +290,7 @@ do_request(From, _) ->
 try_produce_sync({From, Tag}, Topic, Data) ->
     Topic1 = erlang:iolist_to_binary(Topic),
     Data1 =  erlang:iolist_to_binary(Data),
-    Req = {From, Tag,Topic1, Data1},
+    Req = {produce, From, Tag, Topic1, Data1},
     {kafka, get_java_node() } ! Req.
 
 debug(Fmt, Args) ->

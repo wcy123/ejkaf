@@ -11,23 +11,15 @@ import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
 
 public class Node {
+    final static Logger logger = Logger.getLogger(Node.class);
     MyProducer myProducer;
     public static void main (String[]args) {
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    //System.out.println("start to read from standard input");
-                    int buf = System.in.read();
-                    System.out.println("receive:" + buf);
-                } catch (IOException e) {
-                    System.exit(0);
-                }
-            }}).start();
         Node node = new Node();
         try {
             node.loop();
@@ -38,10 +30,11 @@ public class Node {
     Node() {
         myProducer = new MyProducer();
     }
+
     void loop() throws IOException {
         String FirstNode = System.getenv("FIRST_NODE");
         if(FirstNode == null){
-            System.err.println("env FIRST_NODE is empty");
+            logger.error("env FIRST_NODE is empty");
             System.exit(1);
         }
         OtpNode self;
@@ -53,26 +46,24 @@ public class Node {
         }
         OtpMbox msgBox = self.createMbox("kafka");
         if (!self.ping(FirstNode, 2000)) {
-            System.err.println("unable to connect the first node " + FirstNode);
-            System.exit(1);
+            logger.warn("unable to connect the first node " + FirstNode);
+            //System.exit(1);
         }
-        System.out.println("java node is created.");
-        OtpErlangObject exit = new OtpErlangAtom("exit");
+        logger.info("java node is created.");
+        OtpErlangObject c_exit = new OtpErlangAtom("exit");
+        OtpErlangObject c_produce = new OtpErlangAtom("produce");
+        MyConsumer consumer = startConsumerThreadPool(self);
         while (true) {
             try {
                 OtpErlangObject o = msgBox.receive();
                 if (o instanceof OtpErlangTuple) {
                     OtpErlangTuple msg = (OtpErlangTuple)o;
-
-                    OtpErlangPid from = (OtpErlangPid)(msg.elementAt(0));
-                    OtpErlangObject ref = msg.elementAt(1);
-                    OtpErlangBinary topic = (OtpErlangBinary)msg.elementAt(2);
-                    OtpErlangBinary data = (OtpErlangBinary)msg.elementAt(3);
-                    this.myProducer.send(new String(topic.binaryValue()),
-                            data.binaryValue(),
-                            new KafkaCallback(msgBox,from,ref));
-                }else if( o.equals(exit) ) {
-                    System.exit(0);
+                    OtpErlangAtom name = (OtpErlangAtom)(msg.elementAt(0));
+                    if(name.equals(c_produce)) {
+                        HandleProduce(msgBox, msg);
+                    }
+                }else if( o.equals(c_exit) ) {
+                    break;
                 }
             } catch (OtpErlangExit otpErlangExit) {
                 otpErlangExit.printStackTrace();
@@ -80,7 +71,30 @@ public class Node {
                 e.printStackTrace();
             }
         }
+        consumer.shutdown();
     }
+    MyConsumer startConsumerThreadPool(OtpNode self)
+    {
+        String zk = "kafka:2181";
+        String groupid = "mygroup";
+        String topic = "topic1";
+        int numOfThreads = 4;
+        OtpMbox mbox = self.createMbox("kafka_consumer");
+        MyConsumer ret = new MyConsumer(zk, groupid, topic);
+        ret.start(mbox, numOfThreads);
+        return ret;
+    }
+    void HandleProduce(OtpMbox msgBox, OtpErlangTuple msg)
+    {
+        OtpErlangPid from = (OtpErlangPid)(msg.elementAt(1));
+        OtpErlangObject ref = msg.elementAt(2);
+        OtpErlangBinary topic = (OtpErlangBinary)msg.elementAt(3);
+        OtpErlangBinary data = (OtpErlangBinary)msg.elementAt(4);
+        this.myProducer.send(new String(topic.binaryValue()),
+                data.binaryValue(),
+                new KafkaCallback(msgBox, from, ref));
+    }
+
 }
 class KafkaCallback implements Callback {
 

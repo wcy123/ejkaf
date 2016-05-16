@@ -7,3 +7,6 @@ prepare(_Topic) ->
 
 produce_sync(Topic, Data) ->
     ekaf_server:send(Topic,Data).
+
+recv() ->
+    ekaf_server:recv().
