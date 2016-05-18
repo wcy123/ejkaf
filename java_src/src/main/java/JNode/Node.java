@@ -97,14 +97,14 @@ public class Node {
         }
 
         String topics  = prop.getProperty("topics");
-        String[] configs = String.split(",", 0);
+        String[] topics2 = topics.split(",", 0);
 
         ArrayList<MyConsumer> ret = new ArrayList<MyConsumer>();
-        for (String t : topics) {
+        for (String t : topics2) {
             String zk = prop.getProperty("kafka." + t + ".zookeeper");
             String groupid = prop.getProperty("kafka." + t + ".group_id");
-            String topic = prop.getProperty("kafka." + ttopics + ".topic");
-            int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + c + ".num_of_threads"));
+            String topic = prop.getProperty("kafka." + t + ".topic");
+            int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + t + ".num_of_threads"));
             MyConsumer consumer = startConsumerThreadPool(self, zk, groupid, topic, numOfThreads);
             ret.add(consumer);
         }
