@@ -13,7 +13,11 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.log4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Properties;
 
 
 public class Node {
@@ -52,7 +56,7 @@ public class Node {
         logger.info("java node is created.");
         OtpErlangObject c_exit = new OtpErlangAtom("exit");
         OtpErlangObject c_produce = new OtpErlangAtom("produce");
-        MyConsumer consumer = startConsumerThreadPool(self);
+        ArrayList<MyConsumer> consumers = startConsumers(self);
         while (true) {
             try {
                 OtpErlangObject o = msgBox.receive();
@@ -71,15 +75,44 @@ public class Node {
                 e.printStackTrace();
             }
         }
-        consumer.shutdown();
+        for(MyConsumer consumer : consumers) {
+            consumer.shutdown();
+        }
     }
-    MyConsumer startConsumerThreadPool(OtpNode self)
+    ArrayList<MyConsumer> startConsumers(OtpNode self) {
+        String[] configs = {"migrate"};
+        Properties prop = new Properties();
+        String propFileName = "topics.properties";
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
+        if (inputStream != null) {
+            try {
+                prop.load(inputStream);
+            } catch (IOException e) {
+                e.printStackTrace();
+                logger.error("cannot read topic");
+                System.exit(1);
+            }
+        } else {
+            logger.error("property file '" + propFileName + "' not found");
+            System.exit(1);
+        }
+
+        ArrayList<MyConsumer> ret = new ArrayList<MyConsumer>();
+        for (String c : configs) {
+            String zk = prop.getProperty("kafka." + c + ".zookeeper");
+            String groupid = prop.getProperty("kafka." + c + ".group_id");
+            String topic = prop.getProperty("kafka." + c + ".topic");
+            int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + c + ".num_of_threads"));
+            MyConsumer consumer = startConsumerThreadPool(self, zk, groupid, topic, numOfThreads);
+            ret.add(consumer);
+        }
+        return ret;
+    }
+    MyConsumer startConsumerThreadPool(OtpNode self, String zk,
+                                        String groupid, String topic,
+                                       int numOfThreads)
     {
-        String zk = "kafka:2181";
-        String groupid = "mygroup";
-        String topic = "topic1";
-        int numOfThreads = 4;
-        OtpMbox mbox = self.createMbox("kafka_consumer");
+        OtpMbox mbox = self.createMbox(topic);
         MyConsumer ret = new MyConsumer(zk, groupid, topic);
         ret.start(mbox, numOfThreads);
         return ret;

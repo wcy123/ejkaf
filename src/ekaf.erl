@@ -1,12 +1,12 @@
 -module(ekaf).
--export([prepare/1, produce_sync/2]).
+-export([prepare/1, produce_sync/2, recv/1]).
 
 prepare(_Topic) ->
-    ekaf_server:prepare().
+    ejkaf_server:prepare().
 
 
 produce_sync(Topic, Data) ->
-    ekaf_server:send(Topic,Data).
+    ejkaf_server:send(Topic,Data).
 
-recv() ->
-    ekaf_server:recv().
+recv(Topic) ->
+    ejkaf_server:recv(Topic).

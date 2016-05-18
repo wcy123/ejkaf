@@ -44,9 +44,10 @@ prepare() ->
 
 send(Topic, Data) ->
     gen_server:call(?SERVER, {request, {kafka_send, Topic, Data}}).
-recv() ->
+recv(Topic) ->
     Ref = erlang:make_ref(),
-    {kafka_consumer, get_java_node() } ! {self(), Ref},
+    Topic1 = binary_to_atom(iolist_to_binary(Topic),latin1),
+    {Topic1, get_java_node() } ! {self(), Ref},
     receive
         {Ref, Binary} ->
             Binary
@@ -274,11 +275,11 @@ is_node_alive() ->
     lists:member(get_java_node(), nodes(hidden)).
 
 build_broker_list() ->
-    {Host, Port} = application:get_env(ekaf, ekaf_bootstrap_broker, {"localhost", 9092}),
+    {Host, Port} = application:get_env(ejkaf, ejkaf_bootstrap_broker, {"localhost", 9092}),
     Host ++ ":" ++ integer_to_list(Port).
 
 jnode_jar() ->
-    filename:join([code:lib_dir(ekaf),
+    filename:join([code:lib_dir(ejkaf),
                    "java_src","target", "JNode-1.0-jar-with-dependencies.jar"]).
 
 

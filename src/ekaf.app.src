@@ -1,4 +1,4 @@
-{application, ekaf,
+{application, ejkaf,
  [
   {description, "A delegator between JAVA kafka client and erlang."},
   {vsn, git},
@@ -7,6 +7,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { ekaf_app, []}},
+  {mod, { ejkaf_app, []}},
   {env, []}
  ]}.
