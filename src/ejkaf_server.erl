@@ -6,12 +6,12 @@
 %%% @end
 %%% Created : 18 Mar 2016 by WangChunye <>
 %%%-------------------------------------------------------------------
--module(ekaf_server).
+-module(ejkaf_server).
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, prepare/0, send/2]).
+-export([start_link/0, prepare/0, send/2, recv/1, start_java_node/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,

@@ -1,4 +1,4 @@
--module(ekaf_app).
+-module(ejkaf_app).
 
 -behaviour(application).
 

@@ -1,4 +1,4 @@
--module(ekaf).
+-module(ejkaf).
 -export([prepare/1, produce_sync/2, recv/1]).
 
 prepare(_Topic) ->

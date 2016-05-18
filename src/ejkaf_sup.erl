@@ -1,4 +1,4 @@
--module(ekaf_sup).
+-module(ejkaf_sup).
 
 -behaviour(supervisor).
 
