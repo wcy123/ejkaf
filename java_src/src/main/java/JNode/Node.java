@@ -80,7 +80,6 @@ public class Node {
         }
     }
     ArrayList<MyConsumer> startConsumers(OtpNode self) {
-        String[] configs = {"migrate"};
         Properties prop = new Properties();
         String propFileName = "topics.properties";
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
@@ -97,11 +96,14 @@ public class Node {
             System.exit(1);
         }
 
+        String topics  = prop.getProperty("topics");
+        String[] configs = String.split(",", 0);
+
         ArrayList<MyConsumer> ret = new ArrayList<MyConsumer>();
-        for (String c : configs) {
-            String zk = prop.getProperty("kafka." + c + ".zookeeper");
-            String groupid = prop.getProperty("kafka." + c + ".group_id");
-            String topic = prop.getProperty("kafka." + c + ".topic");
+        for (String t : topics) {
+            String zk = prop.getProperty("kafka." + t + ".zookeeper");
+            String groupid = prop.getProperty("kafka." + t + ".group_id");
+            String topic = prop.getProperty("kafka." + ttopics + ".topic");
             int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + c + ".num_of_threads"));
             MyConsumer consumer = startConsumerThreadPool(self, zk, groupid, topic, numOfThreads);
             ret.add(consumer);
