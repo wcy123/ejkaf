@@ -11,7 +11,11 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, prepare/0, send/2, recv/1, start_java_node/0]).
+-export([start_link/0, prepare/0, send/2,
+         become_consumer/1,
+         become_consumer/2,
+         recv/0,
+         recv/1, start_java_node/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -32,6 +36,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
+default_timeout() -> 5000.
+
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
@@ -44,13 +50,22 @@ prepare() ->
 
 send(Topic, Data) ->
     gen_server:call(?SERVER, {request, {kafka_send, Topic, Data}}).
-recv(Topic) ->
-    Ref = erlang:make_ref(),
-    Topic1 = binary_to_atom(iolist_to_binary(Topic),latin1),
-    {Topic1, get_java_node() } ! {self(), Ref},
+
+become_consumer(Topic) ->
+    become_consumer(Topic,self()).
+
+become_consumer(Topic, Pid) ->
+    true = register(Topic, Pid).
+
+recv() ->
+    recv(default_timeout()).
+recv(Timeout) ->
     receive
-        {Ref, Binary} ->
+        {From, Ref, Binary} ->
+            From ! Ref,
             Binary
+    after Timeout ->
+            {error, timeout}
     end.
 
 %%--------------------------------------------------------------------
