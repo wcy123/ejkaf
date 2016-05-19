@@ -2,6 +2,7 @@ package JNode;
 
 
 import com.ericsson.otp.erlang.OtpMbox;
+import com.ericsson.otp.erlang.OtpNode;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
@@ -39,7 +40,7 @@ public class MyConsumer {
         }
     }
 
-    public void start(OtpMbox mbox, int a_numThreads) {
+    public void start(OtpNode self, int a_numThreads,String remoteName, String Node) {
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
         topicCountMap.put(topic, new Integer(1));
         Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap = consumer.createMessageStreams(topicCountMap);
@@ -53,8 +54,9 @@ public class MyConsumer {
         //
         int threadNumber = 0;
         for (final KafkaStream stream : streams) {
-            executor.submit(new MyConsumerThread(stream, mbox, threadNumber));
+            executor.submit(new MyConsumerThread(stream, self, threadNumber,remoteName, Node));
             threadNumber++;
+            System.out.println("debugging " + threadNumber + " " + self);
         }
     }
 

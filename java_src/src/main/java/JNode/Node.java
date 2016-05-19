@@ -101,22 +101,28 @@ public class Node {
 
         ArrayList<MyConsumer> ret = new ArrayList<MyConsumer>();
         for (String t : topics2) {
+            String Node = prop.getProperty("kafka." + t + ".sink_node");
+            if (!self.ping(Node, 2000)) {
+                logger.error("unable to connect the first node " + Node);
+                System.exit(2);
+            }
             String zk = prop.getProperty("kafka." + t + ".zookeeper");
             String groupid = prop.getProperty("kafka." + t + ".group_id");
             String topic = prop.getProperty("kafka." + t + ".topic");
             int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + t + ".num_of_threads"));
-            OtpMbox mbox = self.createMbox(t);
-            MyConsumer consumer = startConsumerThreadPool(mbox, zk, groupid, topic, numOfThreads);
+            MyConsumer consumer = startConsumerThreadPool(self, zk, groupid, topic, numOfThreads, t, Node);
             ret.add(consumer);
         }
         return ret;
     }
-    MyConsumer startConsumerThreadPool(OtpMbox mbox, String zk,
-                                        String groupid, String topic,
-                                       int numOfThreads)
+    MyConsumer startConsumerThreadPool(OtpNode self, String zk,
+                                       String groupid, String topic,
+                                       int numOfThreads,
+                                       String remoteName,
+                                       String Node)
     {
         MyConsumer ret = new MyConsumer(zk, groupid, topic);
-        ret.start(mbox, numOfThreads);
+        ret.start(self, numOfThreads, remoteName, Node);
         return ret;
     }
     void HandleProduce(OtpMbox msgBox, OtpErlangTuple msg)
