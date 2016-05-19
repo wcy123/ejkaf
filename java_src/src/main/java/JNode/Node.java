@@ -105,16 +105,16 @@ public class Node {
             String groupid = prop.getProperty("kafka." + t + ".group_id");
             String topic = prop.getProperty("kafka." + t + ".topic");
             int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + t + ".num_of_threads"));
-            MyConsumer consumer = startConsumerThreadPool(self, zk, groupid, topic, numOfThreads);
+            OtpMbox mbox = self.createMbox(t);
+            MyConsumer consumer = startConsumerThreadPool(mbox, zk, groupid, topic, numOfThreads);
             ret.add(consumer);
         }
         return ret;
     }
-    MyConsumer startConsumerThreadPool(OtpNode self, String zk,
+    MyConsumer startConsumerThreadPool(OtpMbox mbox, String zk,
                                         String groupid, String topic,
                                        int numOfThreads)
     {
-        OtpMbox mbox = self.createMbox(topic);
         MyConsumer ret = new MyConsumer(zk, groupid, topic);
         ret.start(mbox, numOfThreads);
         return ret;
