@@ -18,7 +18,7 @@
          recv/1,
          start_java_node/0,
          stop_java_node/0,
-         is_node_alive/0,
+         is_node_alive/0
         ]).
 
 %% gen_server callbacks
