@@ -45,6 +45,12 @@ ok = file:write_file(TemplateFileName, Template),
     {compile, "./java_build.sh"}
    ]
  },
+ {
+   post_hooks,
+   [
+    {compile, "cp ./java_src/target/JNode-1.0-jar-with-dependencies.jar priv/"}
+   ]
+ },
  {erl_opts, [debug_info, report]},
  {cover_enabled, true},
  {cover_print_enabled, true},
