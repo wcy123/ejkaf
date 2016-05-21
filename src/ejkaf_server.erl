@@ -277,7 +277,7 @@ start_java_node() ->
     true = is_list(Java),
     open_port({spawn_executable, Java},
                      [
-                      {args, ["-jar", jnode_jar(), "-classpath", "."]},
+                      {args, build_java_args() ++ ["-classpath", ".", "-jar", jnode_jar()]},
                       binary,
                       exit_status,
                       {env, [
@@ -285,9 +285,22 @@ start_java_node() ->
                              {"BROKER_LIST", build_broker_list()},
                              {"ERLANG_COOKIE", atom_to_list(erlang:get_cookie())}
                             ]}
-                     ]).
+                     ]),
+    timer:sleep(1000),
+    net_adm:ping(get_java_node()),
+    is_node_alive().
+
+build_java_args() ->
+    {ok, Properties} = application:get_env(ejkaf, properties),
+    lists:map(
+      fun({K,V}) ->
+              binary_to_list(iolist_to_binary(["-D", atom_to_list(K),"=", V]))
+      end, Properties).
+
 stop_java_node() ->
-    {kafka, get_java_node() } ! exit.
+    {kafka, get_java_node() } ! exit,
+    timer:sleep(1000),
+    is_node_alive().
 
 get_java_node() ->
     list_to_atom("java" ++ "@" ++ inet_db:gethostname()).

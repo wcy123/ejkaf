@@ -8,5 +8,5 @@
                   stdlib
                  ]},
   {mod, { ejkaf_app, []}},
-  {env, []}
+  {env, [{properties, []}]}
  ]}.
