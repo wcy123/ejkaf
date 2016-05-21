@@ -12,3 +12,4 @@ rel/example_project
 *.jar
 java_src/target
 libs/org/erlang/otp/jinterface-1.6.1/jinterface-1.6.1.*
+java_src/libs
