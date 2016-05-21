@@ -15,7 +15,11 @@
          become_consumer/1,
          become_consumer/2,
          recv/0,
-         recv/1, start_java_node/0]).
+         recv/1,
+         start_java_node/0,
+         stop_java_node/0,
+         is_node_alive/0,
+        ]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -282,6 +286,8 @@ start_java_node() ->
                              {"ERLANG_COOKIE", atom_to_list(erlang:get_cookie())}
                             ]}
                      ]).
+stop_java_node() ->
+    {kafka, get_java_node() } ! exit.
 
 get_java_node() ->
     list_to_atom("java" ++ "@" ++ inet_db:gethostname()).
