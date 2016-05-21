@@ -313,8 +313,7 @@ build_broker_list() ->
     Host ++ ":" ++ integer_to_list(Port).
 
 jnode_jar() ->
-    filename:join([code:lib_dir(ejkaf),
-                   "java_src","target", "JNode-1.0-jar-with-dependencies.jar"]).
+    filename:join([code:priv_dir(ejkaf), "JNode-1.0-jar-with-dependencies.jar"]).
 
 
 do_request(From, {kafka_send, Topic, Data}) ->
