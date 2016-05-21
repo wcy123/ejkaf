@@ -11,23 +11,21 @@ import org.apache.log4j.Logger;
 
 public class MyConsumerThread implements Runnable {
     final static Logger logger = Logger.getLogger(MyConsumerThread.class);
-    private KafkaStream m_stream;
-    private int m_threadNumber;
-    private OtpNode m_self;
-    private String m_node;
-    private String m_remote_name;
-    public MyConsumerThread(KafkaStream a_stream, OtpNode self, int a_threadNumber, String RemoteName, String Node) {
-        m_threadNumber = a_threadNumber;
-        m_stream = a_stream;
-        m_self = self;
-        m_node = Node;
-        m_remote_name = RemoteName;
+    private KafkaStream stream;
+    private MyConsumerConfig config;
+    public MyConsumerThread(KafkaStream stream,
+                            long nThreadIndex,
+                            MyConsumerConfig config
+                            ) {
+        this.config = config;
+        this.stream = stream;
     }
 
     public void run() {
-        ConsumerIterator<byte[], byte[]> it = m_stream.iterator();
+        ConsumerIterator<byte[], byte[]> it = stream.iterator();
         OtpErlangObject c_undefined = new OtpErlangAtom("undefined");
-        OtpMbox mbox = m_self.createMbox();
+        OtpMbox mbox = config.getMyself().createMbox();
+        OtpErlangObject moduleName = new OtpErlangAtom(config.getModuleName());
         while (true) {
             OtpErlangObject msg = c_undefined;
             logger.debug("start to read topic");
@@ -35,30 +33,31 @@ public class MyConsumerThread implements Runnable {
                 String payload = new String(it.next().message());
                 msg =  new OtpErlangBinary(payload.getBytes());
             }else {
-                System.out.println("exist, no kafka connection");
+                logger.error("exist, no kafka connection");
                 break;
             }
-            OtpErlangObject ref = send_request(mbox,msg);
+            OtpErlangObject ref = send_request(mbox, msg);
             if(!wait_for_response(mbox,ref)) {
-                logger.info("no response, exit\n");
+                logger.error("no response, exit\n");
                 break;
             }
 
         }
     }
     OtpErlangObject send_request(OtpMbox mbox, OtpErlangObject msg){
-        OtpErlangObject ref = m_self.createRef();
-        OtpErlangObject[] request0 = new OtpErlangObject[3];
-        request0[0] = mbox.self();
-        request0[1] = ref;
-        request0[2] = msg;
+        OtpErlangObject ref = config.getMyself().createRef();
+        OtpErlangObject[] request0 = new OtpErlangObject[4];
+        request0[0] = new OtpErlangBinary(config.getTopic());
+        request0[1] = mbox.self();
+        request0[2] = ref;
+        request0[3] = msg;
         OtpErlangObject request = new OtpErlangTuple(request0);
-        logger.debug("sending " + msg + " to "  + m_remote_name + "@" + m_node);
-        mbox.send(m_remote_name, m_node, request);
+        logger.debug("sending " + msg + " to {"  + config.getModuleName() + "," + config.getNodeName() + "@localhost }");
+        mbox.send(config.getModuleName(), config.getNodeName(), request);
         return ref;
     }
     boolean wait_for_response(OtpMbox mbox, OtpErlangObject ref) {
-        long timeout = 10000;
+        long timeout = 1000;
         boolean ack = false;
         OtpErlangObject o;
         while (!ack) {

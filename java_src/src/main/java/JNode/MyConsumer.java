@@ -17,15 +17,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class MyConsumer {
-    private final ConsumerConnector consumer;
-    private final String topic;
-    private ExecutorService executor;
     final static Logger logger = Logger.getLogger(MyConsumer.class);
+    private final ConsumerConnector consumer;
+    private MyConsumerConfig config;
+    private ExecutorService executor;
 
-    public MyConsumer(String a_zookeeper, String a_groupId, String a_topic) {
+    public MyConsumer(MyConsumerConfig config) {
+        this.config = config;
         consumer = kafka.consumer.Consumer.createJavaConsumerConnector(
-                createConsumerConfig(a_zookeeper, a_groupId));
-        this.topic = a_topic;
+                createConsumerConfig());
     }
 
     public void shutdown() {
@@ -40,34 +40,33 @@ public class MyConsumer {
         }
     }
 
-    public void start(OtpNode self, int a_numThreads,String remoteName, String Node) {
+    public void start() {
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
-        topicCountMap.put(topic, new Integer(1));
+        topicCountMap.put(config.getTopic(), new Integer(1));
         Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap = consumer.createMessageStreams(topicCountMap);
-        List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
+        List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(config.getTopic());
 
         // now launch all the threads
         //
-        executor = Executors.newFixedThreadPool(a_numThreads);
+        executor = Executors.newFixedThreadPool(config.getNumOfThreads());
 
         // now create an object to consume the messages
         //
         int threadNumber = 0;
         for (final KafkaStream stream : streams) {
-            executor.submit(new MyConsumerThread(stream, self, threadNumber,remoteName, Node));
+            executor.submit(new MyConsumerThread(stream, threadNumber, config));
             threadNumber++;
-            System.out.println("debugging " + threadNumber + " " + self);
+            System.out.println("debugging " + threadNumber + " " + config.getMyself());
         }
     }
 
-    private static ConsumerConfig createConsumerConfig(String a_zookeeper, String a_groupId) {
+    private ConsumerConfig createConsumerConfig() {
         Properties props = new Properties();
-        props.put("zookeeper.connect", a_zookeeper);
-        props.put("group.id", a_groupId);
+        props.put("zookeeper.connect", config.getZookeeper());
+        props.put("group.id", config.getGroupId());
         props.put("zookeeper.session.timeout.ms", "400");
         props.put("zookeeper.sync.time.ms", "200");
-        props.put("auto.commit.interval.ms", "1000");
-
+        props.put("auto.commit.interval.ms", "10000");
         return new ConsumerConfig(props);
     }
 }

@@ -1,14 +1,6 @@
 package JNode;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangBinary;
-import com.ericsson.otp.erlang.OtpErlangDecodeException;
-import com.ericsson.otp.erlang.OtpErlangExit;
-import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangPid;
-import com.ericsson.otp.erlang.OtpErlangTuple;
-import com.ericsson.otp.erlang.OtpMbox;
-import com.ericsson.otp.erlang.OtpNode;
+import com.ericsson.otp.erlang.*;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.log4j.Logger;
@@ -16,14 +8,28 @@ import org.apache.log4j.Logger;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Properties;
 
 
 public class Node {
     final static Logger logger = Logger.getLogger(Node.class);
+    final private Properties prop;
     MyProducer myProducer;
     public static void main (String[]args) {
+        Socket x = null;
+     /*   try {
+            x = new Socket("wangchunye", 4369);
+            logger.info("socket is " + x);
+            x.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.exit(0);*/
+        Properties p = System.getProperties();
+        p.setProperty("OtpConnection.trace","4");
+        System.setProperties(p);
         Node node = new Node();
         try {
             node.loop();
@@ -32,60 +38,18 @@ public class Node {
         }
     }
     Node() {
-        myProducer = new MyProducer();
-    }
-
-    void loop() throws IOException {
-        String FirstNode = System.getenv("FIRST_NODE");
-        if(FirstNode == null){
-            logger.error("env FIRST_NODE is empty");
-            System.exit(1);
-        }
-        OtpNode self;
-        String Cookie = System.getenv("ERLANG_COOKIE");
-        if(Cookie == null) {
-            self = new OtpNode("java");
-        } else {
-            self = new OtpNode("java", Cookie);
-        }
-        OtpMbox msgBox = self.createMbox("kafka");
-        if (!self.ping(FirstNode, 2000)) {
-            logger.warn("unable to connect the first node " + FirstNode);
-            //System.exit(1);
-        }
-        logger.info("java node is created.");
-        OtpErlangObject c_exit = new OtpErlangAtom("exit");
-        OtpErlangObject c_produce = new OtpErlangAtom("produce");
-        ArrayList<MyConsumer> consumers = startConsumers(self);
-        while (true) {
-            try {
-                OtpErlangObject o = msgBox.receive();
-                if (o instanceof OtpErlangTuple) {
-                    OtpErlangTuple msg = (OtpErlangTuple)o;
-                    OtpErlangAtom name = (OtpErlangAtom)(msg.elementAt(0));
-                    if(name.equals(c_produce)) {
-                        HandleProduce(msgBox, msg);
-                    }
-                }else if( o.equals(c_exit) ) {
-                    break;
-                }
-            } catch (OtpErlangExit otpErlangExit) {
-                otpErlangExit.printStackTrace();
-            } catch (OtpErlangDecodeException e) {
-                e.printStackTrace();
-            }
-        }
-        for(MyConsumer consumer : consumers) {
-            consumer.shutdown();
+        prop = InitProp();
+        if(prop.getProperty("start_producer") == "true") {
+            myProducer = new MyProducer();
         }
     }
-    ArrayList<MyConsumer> startConsumers(OtpNode self) {
-        Properties prop = new Properties();
+    private Properties InitProp() {
+        Properties prop1 = new Properties();
         String propFileName = "topics.properties";
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
         if (inputStream != null) {
             try {
-                prop.load(inputStream);
+                prop1.load(inputStream);
             } catch (IOException e) {
                 e.printStackTrace();
                 logger.error("cannot read topic");
@@ -95,34 +59,93 @@ public class Node {
             logger.error("property file '" + propFileName + "' not found");
             System.exit(1);
         }
+        return prop1;
+    }
+    void loop() throws IOException {
+        String FirstNode = System.getenv("FIRST_NODE");
+        if (FirstNode == null) {
+            logger.error("env FIRST_NODE is empty");
+            System.exit(1);
+        }
+        OtpNode self;
+        String Cookie = System.getenv("ERLANG_COOKIE");
+        if (Cookie == null) {
+            self = new OtpNode("java");
+        } else {
+            self = new OtpNode("java", Cookie);
+        }
+        OtpMbox msgBox = self.createMbox("kafka");
+        if (false && !self.ping(FirstNode, 2000)) {
+            logger.warn("unable to connect the first node " + FirstNode);
+            //System.exit(1);
+        }
+        logger.info("java node is created.");
+        ArrayList<MyConsumer> consumers = startConsumers(self);
+        OtpErlangObject c_exit = new OtpErlangAtom("exit");
+        OtpErlangObject c_produce = new OtpErlangAtom("produce");
+        while (true) {
+            try {
+                OtpErlangObject o = msgBox.receive();
+                if (o instanceof OtpErlangTuple) {
+                    OtpErlangTuple msg = (OtpErlangTuple) o;
+                    OtpErlangAtom name = (OtpErlangAtom) (msg.elementAt(0));
+                    if (name.equals(c_produce)) {
+                        HandleProduce(msgBox, msg);
+                    }
+                } else if (o.equals(c_exit)) {
+                    break;
+                }
+            } catch (OtpErlangExit otpErlangExit) {
+                otpErlangExit.printStackTrace();
+            } catch (OtpErlangDecodeException e) {
+                e.printStackTrace();
+            }
+        }
+        logger.info("shutting down the java kafka\n");
+        for (MyConsumer consumer : consumers) {
+            consumer.shutdown();
+        }
+    }
+    ArrayList<MyConsumer> startConsumers(OtpNode self) {
 
-        String topics  = prop.getProperty("topics");
-        String[] topics2 = topics.split(",", 0);
+
+        String[] modules  = prop.getProperty("modules").split(",", 0);
 
         ArrayList<MyConsumer> ret = new ArrayList<MyConsumer>();
-        for (String t : topics2) {
-            String Node = prop.getProperty("kafka." + t + ".sink_node");
-            if (!self.ping(Node, 2000)) {
-                logger.error("unable to connect the first node " + Node);
+        for (String module : modules) {
+            MyConsumerConfig config = new MyConsumerConfig(prop, module, self);
+            String Node = config.getNodeName();
+            boolean node_ok = connect_node(self, Node);
+            if(!node_ok) {
                 System.exit(2);
             }
-            String zk = prop.getProperty("kafka." + t + ".zookeeper");
-            String groupid = prop.getProperty("kafka." + t + ".group_id");
-            String topic = prop.getProperty("kafka." + t + ".topic");
-            int numOfThreads = Integer.parseInt(prop.getProperty("kafka." + t + ".num_of_threads"));
-            MyConsumer consumer = startConsumerThreadPool(self, zk, groupid, topic, numOfThreads, t, Node);
+            MyConsumer consumer = startConsumerThreadPool(config);
             ret.add(consumer);
         }
         return ret;
     }
-    MyConsumer startConsumerThreadPool(OtpNode self, String zk,
-                                       String groupid, String topic,
-                                       int numOfThreads,
-                                       String remoteName,
-                                       String Node)
+    boolean connect_node(OtpNode self, String node){
+        try {
+            logger.info("names = " + String.join("     \n", OtpEpmd.lookupNames()));
+            OtpPeer peer = new OtpPeer("im_libs@wangchunye");
+            logger.info("lookup port " + OtpEpmd.lookupPort(peer));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        boolean node_ok = false;
+        for(int i = 0; i < 30; i ++){
+            if (!self.ping(node, 2000)) {
+                logger.error("unable to connect the sink node " + node);
+            }else{
+                node_ok = true;break;
+            }
+        }
+        return node_ok;
+    }
+    MyConsumer startConsumerThreadPool(MyConsumerConfig config)
     {
-        MyConsumer ret = new MyConsumer(zk, groupid, topic);
-        ret.start(self, numOfThreads, remoteName, Node);
+        MyConsumer ret = new MyConsumer(config);
+        ret.start();
         return ret;
     }
     void HandleProduce(OtpMbox msgBox, OtpErlangTuple msg)
@@ -131,9 +154,24 @@ public class Node {
         OtpErlangObject ref = msg.elementAt(2);
         OtpErlangBinary topic = (OtpErlangBinary)msg.elementAt(3);
         OtpErlangBinary data = (OtpErlangBinary)msg.elementAt(4);
-        this.myProducer.send(new String(topic.binaryValue()),
-                data.binaryValue(),
-                new KafkaCallback(msgBox, from, ref));
+        if (myProducer != null) {
+            this.myProducer.send(new String(topic.binaryValue()),
+                    data.binaryValue(),
+                    new KafkaCallback(msgBox, from, ref));
+        } else {
+            OtpErlangObject reply;
+            // return {error, Reason}.
+            OtpErlangObject[] error = new OtpErlangObject[2];
+            error[0] = new OtpErlangAtom("error");
+            String reason = "not started";
+            error[1] = new OtpErlangBinary(reason);
+            reply = new OtpErlangTuple(error);
+
+            OtpErlangObject[] result = new OtpErlangObject[2];
+            result[0] = ref;
+            result[1] = reply;
+            msgBox.send(from, new OtpErlangTuple(result));
+        }
     }
 
 }
