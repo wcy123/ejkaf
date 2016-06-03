@@ -52,8 +52,9 @@ public class MyConsumerThread implements Runnable {
         request0[2] = ref;
         request0[3] = msg;
         OtpErlangObject request = new OtpErlangTuple(request0);
-        logger.debug("sending " + msg + " to {"  + config.getModuleName() + "," + config.getNodeName() + "@localhost }");
-        mbox.send(config.getModuleName(), config.getNodeName(), request);
+        String NodeName = System.getenv("FIRST_NODE");
+        logger.debug("sending " + msg + " to {"  + config.getModuleName() + "," + NodeName + "@localhost }");
+        mbox.send(config.getModuleName(), NodeName, request);
         return ref;
     }
     boolean wait_for_response(OtpMbox mbox, OtpErlangObject ref) {
