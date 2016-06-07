@@ -13,13 +13,11 @@ public class MyConsumerConfig {
     private String zookeeper = "zk:2181";
     private String groupId = "my_group_id";
     private String moduleName = "module";
-    private String nodeName = "im_libs";
     private OtpNode myself = null;
 
     public MyConsumerConfig(Properties prop, String module, OtpNode myself) {
         this.topic = prop.getProperty("kafka." + module + ".topic", topic);
         moduleName = prop.getProperty("kafka." + module + ".module_name", module);
-        nodeName = prop.getProperty("kafka." + module + ".node_name", nodeName);
         zookeeper = prop.getProperty("kafka." + module + ".zookeeper",zookeeper);
         groupId = prop.getProperty("kafka." + module + ".group_id", groupId);
         numOfThreads = Integer.parseInt(prop.getProperty("kafka." + module + ".num_of_threads", "1"));
@@ -44,10 +42,6 @@ public class MyConsumerConfig {
 
     public String getModuleName() {
         return moduleName;
-    }
-
-    public String getNodeName() {
-        return nodeName;
     }
 
     public OtpNode getMyself() {
