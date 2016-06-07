@@ -8,7 +8,5 @@
                   stdlib
                  ]},
   {mod, { ejkaf_app, []}},
-  {env, [{properties, [
-                       {'kafka.offline.topic',"ejabberd-chat-offlines"}
-                      ]}]}
+  {env, [{properties, []}]}
  ]}.

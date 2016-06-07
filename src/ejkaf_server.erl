@@ -274,8 +274,8 @@ maybe_start_node(State) ->
 
 start_java_node() ->
     Java = os:find_executable("java"),
-    io:format("[ejkaf_server]Java: ~p,  jnode_jar: ~p, build_broker_list: ~p, cookie: ~p~n",
-              [Java, jnode_jar(), build_broker_list(), erlang:get_cookie()]),
+    %debug("[ejkaf_server]Java: ~p,  jnode_jar: ~p, build_broker_list: ~p, cookie: ~p~n",
+    %      [Java, jnode_jar(), build_broker_list(), erlang:get_cookie()]),
     true = is_list(Java),
     open_port({spawn_executable, Java},
                      [
@@ -289,7 +289,7 @@ start_java_node() ->
                             ]}
                      ]),
     timer:sleep(1000),
-    io:format("[ejkaf_server]get_java_node(): ~p~n", [get_java_node()]),
+    %debug("[ejkaf_server]get_java_node(): ~p~n", [get_java_node()]),
     pong = net_adm:ping(get_java_node()).
 
 build_java_args() ->
@@ -301,7 +301,7 @@ build_java_args() ->
 
 stop_java_node() ->
     {kafka, get_java_node() } ! exit,
-    timer:sleep(5000).
+    timer:sleep(2000).
 
 get_java_node() ->
     {ok, HostName} = inet:gethostname(),

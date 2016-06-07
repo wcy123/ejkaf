@@ -93,7 +93,7 @@ public class Node {
                         HandleProduce(msgBox, msg);
                     }
                 } else if (o.equals(c_exit)) {
-                    logger.info("Receive exit msg");
+                    logger.debug("Receive exit msg");
                     break;
                 }
             } catch (OtpErlangExit otpErlangExit) {
@@ -132,7 +132,7 @@ public class Node {
                 logger.error("self node(" + self + ") unable to connect node " + node);
             }else{
                 node_ok = true;
-                logger.info("self node(" + self + ") connected node " + node);
+                logger.debug("self node(" + self + ") connected node " + node);
                 break;
             }
         }
