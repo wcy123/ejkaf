@@ -27,9 +27,9 @@ public class Node {
             e.printStackTrace();
         }
         System.exit(0);*/
-        Properties p = System.getProperties();
-        p.setProperty("OtpConnection.trace","4");
-        System.setProperties(p);
+        //Properties p = System.getProperties();
+        //p.setProperty("OtpConnection.trace","4");
+        //System.setProperties(p);
         Node node = new Node();
         try {
             node.loop();
@@ -93,6 +93,7 @@ public class Node {
                         HandleProduce(msgBox, msg);
                     }
                 } else if (o.equals(c_exit)) {
+                    logger.debug("Receive exit msg");
                     break;
                 }
             } catch (OtpErlangExit otpErlangExit) {
@@ -114,7 +115,7 @@ public class Node {
         ArrayList<MyConsumer> ret = new ArrayList<MyConsumer>();
         for (String module : modules) {
             MyConsumerConfig config = new MyConsumerConfig(prop, module, self);
-            String Node = config.getNodeName();
+            String Node = System.getenv("FIRST_NODE");
             boolean node_ok = connect_node(self, Node);
             if(!node_ok) {
                 System.exit(2);
@@ -125,19 +126,14 @@ public class Node {
         return ret;
     }
     boolean connect_node(OtpNode self, String node){
-        try {
-            logger.info("names = " + String.join("     \n", OtpEpmd.lookupNames()));
-            OtpPeer peer = new OtpPeer("im_libs@wangchunye");
-            logger.info("lookup port " + OtpEpmd.lookupPort(peer));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         boolean node_ok = false;
         for(int i = 0; i < 30; i ++){
             if (!self.ping(node, 2000)) {
-                logger.error("unable to connect the sink node " + node);
+                logger.error("self node(" + self + ") unable to connect node " + node);
             }else{
-                node_ok = true;break;
+                node_ok = true;
+                logger.debug("self node(" + self + ") connected node " + node);
+                break;
             }
         }
         return node_ok;

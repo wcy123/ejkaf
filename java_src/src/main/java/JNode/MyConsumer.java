@@ -32,7 +32,7 @@ public class MyConsumer {
         if (consumer != null) consumer.shutdown();
         if (executor != null) executor.shutdown();
         try {
-            if (!executor.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+            if (!executor.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
                 logger.error("Timed out waiting for consumer threads to shut down, exiting uncleanly");
             }
         } catch (InterruptedException e) {
