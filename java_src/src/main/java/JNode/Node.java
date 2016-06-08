@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Properties;
 
 
@@ -59,7 +60,18 @@ public class Node {
             logger.error("property file '" + propFileName + "' not found");
             System.exit(1);
         }
-        return prop1;
+        Properties prop2 = (Properties)(prop1.clone());
+        Enumeration e1 = prop1.propertyNames();
+        while(e1.hasMoreElements()) {
+            String key = (String) e1.nextElement();
+            prop2.setProperty(key, System.getProperty(key,prop1.getProperty(key)));
+        }
+        Enumeration e2 = prop1.propertyNames();
+        while(e2.hasMoreElements()) {
+            String key = (String) e2.nextElement();
+            logger.info("config: " + key + " = " + prop2.getProperty(key));
+        }
+        return prop2;
     }
     void loop() throws IOException {
         String FirstNode = System.getenv("FIRST_NODE");
