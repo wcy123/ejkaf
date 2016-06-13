@@ -14,13 +14,15 @@ public class MyConsumerConfig {
     private String groupId = "my_group_id";
     private String moduleName = "module";
     private OtpNode myself = null;
-
+    private String [] filter = null;
     public MyConsumerConfig(Properties prop, String module, OtpNode myself) {
         this.topic = prop.getProperty("kafka." + module + ".topic", topic);
         moduleName = prop.getProperty("kafka." + module + ".module_name", module);
         zookeeper = prop.getProperty("kafka." + module + ".zookeeper",zookeeper);
         groupId = prop.getProperty("kafka." + module + ".group_id", groupId);
         numOfThreads = Integer.parseInt(prop.getProperty("kafka." + module + ".num_of_threads", "1"));
+        String filterString = prop.getProperty("kafka." + module + ".filter", "");
+        filter = filterString.split(",");
         this.myself = myself;
     }
 
@@ -46,6 +48,15 @@ public class MyConsumerConfig {
 
     public OtpNode getMyself() {
         return myself;
+    }
+
+    public boolean isValid(String s) {
+        boolean ret = false;
+        if(filter.length == 0) return true;
+        for(String ff: filter){
+            ret = ret || s.contains(ff);
+        }
+        return ret;
     }
 }
 

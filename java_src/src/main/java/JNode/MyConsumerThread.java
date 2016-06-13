@@ -13,38 +13,40 @@ public class MyConsumerThread implements Runnable {
     final static Logger logger = Logger.getLogger(MyConsumerThread.class);
     private KafkaStream stream;
     private MyConsumerConfig config;
+    private long counter = 0;
+    private long nThreadIndex = 0;
     public MyConsumerThread(KafkaStream stream,
                             long nThreadIndex,
                             MyConsumerConfig config
                             ) {
         this.config = config;
         this.stream = stream;
+        this.nThreadIndex = nThreadIndex;
     }
 
     public void run() {
         ConsumerIterator<byte[], byte[]> it = stream.iterator();
         OtpErlangObject c_undefined = new OtpErlangAtom("undefined");
         OtpMbox mbox = config.getMyself().createMbox();
-        OtpErlangObject moduleName = new OtpErlangAtom(config.getModuleName());
-        while (true) {
-            OtpErlangObject msg = c_undefined;
-            logger.debug("start to read topic");
-            if (it.hasNext()) {
-                String payload = new String(it.next().message());
-                msg =  new OtpErlangBinary(payload.getBytes());
-            }else {
-                logger.error("exist, no kafka connection");
-                break;
+        while (it.hasNext()) {
+            counter ++;
+            if (counter % 10000 == 0) {
+                logger.info("thread " + nThreadIndex + " consumes " + counter +  " msg");
             }
-            OtpErlangObject ref = send_request(mbox, msg);
-            if(!wait_for_response(mbox,ref)) {
-                logger.error("no response, exit\n");
-                break;
+            String payload = new String(it.next().message());
+            if (config.isValid(payload)) {
+                String NodeName = System.getenv("FIRST_NODE");
+                logger.info("sending " + payload + " to {"  + config.getModuleName() + "," + NodeName + " }");
+                OtpErlangObject msg = new OtpErlangBinary(payload.getBytes());
+                OtpErlangObject ref = send_request(mbox, msg, NodeName);
+                if (!wait_for_response(mbox, ref)) {
+                    logger.error("no response, exit");
+                    break;
+                }
             }
-
         }
     }
-    OtpErlangObject send_request(OtpMbox mbox, OtpErlangObject msg){
+    private OtpErlangObject send_request(OtpMbox mbox, OtpErlangObject msg, String NodeName){
         OtpErlangObject ref = config.getMyself().createRef();
         OtpErlangObject[] request0 = new OtpErlangObject[4];
         request0[0] = new OtpErlangBinary(config.getTopic());
@@ -52,8 +54,6 @@ public class MyConsumerThread implements Runnable {
         request0[2] = ref;
         request0[3] = msg;
         OtpErlangObject request = new OtpErlangTuple(request0);
-        String NodeName = System.getenv("FIRST_NODE");
-        logger.debug("sending " + msg + " to {"  + config.getModuleName() + "," + NodeName + "@localhost }");
         mbox.send(config.getModuleName(), NodeName, request);
         return ref;
     }
