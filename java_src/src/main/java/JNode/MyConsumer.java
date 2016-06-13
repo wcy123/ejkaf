@@ -42,7 +42,7 @@ public class MyConsumer {
 
     public void start() {
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
-        topicCountMap.put(config.getTopic(), new Integer(1));
+        topicCountMap.put(config.getTopic(), config.getNumOfThreads());
         Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap = consumer.createMessageStreams(topicCountMap);
         List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(config.getTopic());
 
@@ -66,7 +66,7 @@ public class MyConsumer {
         props.put("group.id", config.getGroupId());
         props.put("zookeeper.session.timeout.ms", "400");
         props.put("zookeeper.sync.time.ms", "200");
-        props.put("auto.commit.interval.ms", "10000");
+        props.put("auto.commit.interval.ms", "5000");
         return new ConsumerConfig(props);
     }
 }
