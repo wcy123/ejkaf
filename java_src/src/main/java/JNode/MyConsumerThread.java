@@ -63,7 +63,7 @@ public class MyConsumerThread implements Runnable {
         return ref;
     }
     boolean wait_for_response(OtpMbox mbox, OtpErlangObject ref) {
-        long timeout = 60000;
+        long timeout = config.getTimeout();
         boolean ack = false;
         OtpErlangObject o;
         while (!ack) {
