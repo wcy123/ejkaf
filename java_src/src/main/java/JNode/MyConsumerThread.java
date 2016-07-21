@@ -31,17 +31,22 @@ public class MyConsumerThread implements Runnable {
         while (it.hasNext()) {
             counter ++;
             if (counter % 10000 == 0) {
-                logger.info("thread " + nThreadIndex + " consumes " + counter +  " msg");
+                long threadId = Thread.currentThread().getId();
+                logger.info("<" + threadId + ">: thread " + nThreadIndex + " consumes " + counter +  " msg");
             }
             String payload = new String(it.next().message());
             if (config.isValid(payload)) {
                 String NodeName = System.getenv("FIRST_NODE");
-                logger.info("sending " + payload + " to {"  + config.getModuleName() + "," + NodeName + " }");
+                //logger.info("sending " + payload + " to {"  + config.getModuleName() + "," + NodeName + " }");
                 OtpErlangObject msg = new OtpErlangBinary(payload.getBytes());
                 OtpErlangObject ref = send_request(mbox, msg, NodeName);
-                if (!wait_for_response(mbox, ref)) {
-                    logger.error("no response, exit");
-                    break;
+                while(true) {
+                    if (wait_for_response(mbox, ref)) {
+                        break;
+                    } else {
+                        logger.error("resending " + payload + " to {" + config.getModuleName() + "," + NodeName + " }");
+                        ref = send_request(mbox, msg, NodeName);
+                    }
                 }
             }
         }
@@ -58,7 +63,7 @@ public class MyConsumerThread implements Runnable {
         return ref;
     }
     boolean wait_for_response(OtpMbox mbox, OtpErlangObject ref) {
-        long timeout = 1000;
+        long timeout = 60000;
         boolean ack = false;
         OtpErlangObject o;
         while (!ack) {
